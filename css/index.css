@@ -69,6 +69,10 @@ html, body {
     color: #d3ce99;
 }
 
+.active-cell {
+    color: #e47940 !important;
+}
+
 .row-index {
     font-size: 10pt;
     font-family: courier;

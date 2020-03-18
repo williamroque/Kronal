@@ -4,6 +4,9 @@ const tableElement = document.querySelector('#timetable');
 
 let timetable = getData();
 
+let currentCell;
+let hoveredCell;
+
 function clearElement(elem) {
     while (elem.firstNode) {
         elem.removeChild(elem.firstNode);
@@ -43,18 +46,46 @@ function renderTable(timetable) {
             } else {
                 cellClass = 'cell';
                 cellText = timetable[rowIndex][cellIndex - 1];
-                cellElement.setAttribute('data-index', `${rowIndex}-${cellIndex - 1}`);
+                cellElement.setAttribute('id', `c-${rowIndex}-${cellIndex - 1}`);
 
                 cellElement.addEventListener('mouseenter', e => {
-                    const [ rowIndex, cellIndex ] = e.currentTarget.getAttribute('data-index').split('-');
-                    document.querySelector(`#row-${rowIndex}`).classList.add('active-index');
-                    document.querySelector(`#cell-${cellIndex}`).classList.add('active-index');
-                }, false)
+                    const [rowIndex, cellIndex] = e.currentTarget.getAttribute('id').split('-').slice(1);
+
+                    if (hoveredCell && hoveredCell.length) {
+                        document.querySelector(`#row-${hoveredCell[0]}`).classList.remove('active-index');
+                        document.querySelector(`#cell-${hoveredCell[1]}`).classList.remove('active-index');
+                    }
+
+                    if (!currentCell || rowIndex !== currentCell[0] && cellIndex !== currentCell[1]) {
+                        hoveredCell = [rowIndex, cellIndex];
+                        document.querySelector(`#row-${hoveredCell[0]}`).classList.add('active-index');
+                        document.querySelector(`#cell-${hoveredCell[1]}`).classList.add('active-index');
+                    }
+                }, false);
                 cellElement.addEventListener('mouseleave', e => {
-                    const [ rowIndex, cellIndex ] = e.currentTarget.getAttribute('data-index').split('-');
-                    document.querySelector(`#row-${rowIndex}`).classList.remove('active-index');
-                    document.querySelector(`#cell-${cellIndex}`).classList.remove('active-index');
-                }, false)
+                    const [rowIndex, cellIndex] = e.currentTarget.getAttribute('id').split('-').slice(1);
+
+                    if (hoveredCell && hoveredCell.length && hoveredCell[0] === rowIndex && hoveredCell[1] === cellIndex) {
+                        document.querySelector(`#row-${rowIndex}`).classList.remove('active-index');
+                        document.querySelector(`#cell-${cellIndex}`).classList.remove('active-index');
+                    }
+                }, false);
+                cellElement.addEventListener('click', e => {
+                    const [rowIndex, cellIndex] = e.currentTarget.getAttribute('id').split('-').slice(1);
+
+                    if (currentCell && currentCell.length) {
+                        document.querySelector(`#row-${currentCell[0]}`).classList.remove('active-index');
+                        document.querySelector(`#cell-${currentCell[1]}`).classList.remove('active-index');
+                        document.querySelector(`#c-${currentCell[0]}-${currentCell[1]}`).classList.remove('active-cell');
+                    }
+                    currentCell = [rowIndex, cellIndex];
+                    hoveredCell = [];
+
+                    document.querySelector(`#row-${currentCell[0]}`).classList.add('active-index');
+                    document.querySelector(`#cell-${currentCell[1]}`).classList.add('active-index');
+
+                    e.currentTarget.classList.add('active-cell');
+                }, false);
             }
 
             cellElement.classList.add(cellClass);
@@ -81,5 +112,25 @@ function renderTable(timetable) {
     }
     tableElement.appendChild(indexRowElement);
 }
+
+function clearSelection() {
+    if (currentCell && currentCell.length) {
+        document.querySelector(`#row-${currentCell[0]}`).classList.remove('active-index');
+        document.querySelector(`#cell-${currentCell[1]}`).classList.remove('active-index');
+        document.querySelector(`#c-${currentCell[0]}-${currentCell[1]}`).classList.remove('active-cell');
+
+        currentCell = [];
+    }
+}
+
+window.addEventListener('keyup', e => {
+    switch (e.key) {
+        case 'Escape':
+            clearSelection();
+            break;
+        default:
+            console.log(e.key);
+    }
+}, false);
 
 renderTable(timetable);
