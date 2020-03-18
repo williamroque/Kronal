@@ -1,0 +1,41 @@
+{
+    "name": "kronal",
+    "productName": "Kronal",
+    "version": "1.0.0",
+    "description": "",
+    "build": {
+        "appId": "com.quantum.kronal",
+        "mac": {
+            "target": "dmg",
+            "icon": "assets/icon.png",
+            "darkModeSupport": true
+        },
+        "win": {
+            "target": "nsis",
+            "icon": "assets/icon.png"
+        },
+        "linux": {
+            "target": "AppImage",
+            "icon": "assets/icon.png"
+        }
+    },
+    "scripts": {
+        "start": "electron .",
+        "dist-all": "electron-builder -mwl",
+        "dist-win": "electron-builder -w",
+        "dist-lin": "electron-builder -l",
+        "dist-mac": "electron-builder -m"
+    },
+    "main": "mjs/main.js",
+    "author": "William Roque",
+    "email": "William Roque <william.aroque@gmail.com>",
+    "license": "ISC",
+    "devDependencies": {
+        "electron": "^4.1.4",
+        "electron-builder": "^20.40.2"
+    },
+    "dependencies": {
+        "electron-window-state": "^5.0.3",
+        "fix-path": "^2.1.0"
+    }
+}
