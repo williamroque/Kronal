@@ -15,6 +15,34 @@ let temporaryIndices = [];
 
 let cursorPos;
 
+let actions = [];
+
+function renderText(cell, text) {
+    document.querySelector(`#c-${cell[0]}-${cell[1]}`).innerText = text;
+}
+
+function swapCells(cell1, cell2) {
+    actions.push({ type: 'swap', cells: [cell1, cell2] });
+
+    [timetable[cell1[0]][cell1[1]], timetable[cell2[0]][cell2[1]]] =
+        [timetable[cell2[0]][cell2[1]], timetable[cell1[0]][cell1[1]]];
+
+    renderText(cell1, timetable[cell1[0]][cell1[1]]);
+    renderText(cell2, timetable[cell2[0]][cell2[1]]);
+}
+
+function clearCell(cell) {
+    actions.push({
+        type: 'clear',
+        cell: cell,
+        content: timetable[cell[0]][cell[1]]
+    });
+
+    timetable[cell[0]][cell[1]] = '';
+
+    renderText(cell, '');
+}
+
 function clearElement(elem) {
     while (elem.firstNode) {
         elem.removeChild(elem.firstNode);
@@ -208,9 +236,12 @@ gotoPrompt.addEventListener('keydown', e => {
                 gotoPrompt.innerText = promptText;
                 cursorPos = 1;
             } else {
-                promptText = promptText.slice(0, cursorPos - 1) + promptText.slice(cursorPos, promptText.length);
-                gotoPrompt.innerText = promptText;
-                cursorPos--;
+                proText = promptText.slice(0, cursorPos - 1) + promptText.slice(cursorPos, promptText.length);
+                if (!(/\./.test(proText)) || /\./.test(proText) && !proText.slice(1).split('.').every(x => x === '')) {
+                    promptText = proText;
+                    gotoPrompt.innerText = promptText;
+                    cursorPos--;
+                }
             }
         }
     } else if (key === 'ArrowLeft') {
@@ -227,43 +258,49 @@ gotoPrompt.addEventListener('keydown', e => {
         }
     } else if (key === 'Enter') {
         if (promptCmd === '/') {
-            if (gotoSequence[2].test(promptText) || gotoSequence[6].test(promptText)) {
+            if (gotoSequence[2].test(promptText)) {
                 const [row, cell] = promptText.slice(1).split('.').map(x => x | 0);
                 if (row < timetable.length && cell < timetable[0].length) {
                     selectCell(row, cell);
                     completed = true;
                 }
+            } else if (gotoSequence[6].test(promptText)) {
+
             }
         } else {
-
+            if (swapSequence[2].test(promptText)) {
+                const [row, cell] = promptText.slice(1).split('.').map(x => x | 0);
+                if (row < timetable.length && cell < timetable[0].length) {
+                    swapCells(currentCell, [row, cell]);
+                    clearSelection();
+                    completed = true;
+                }
+            }
         }
 
         if (completed) {
             gotoPrompt.style.display = 'none';
+            gotoPromptVisible = false;
         }
     }
 
     if (promptCmd === '/') {
         const [row, cell] = promptText.slice(1).split('.').map(x => /^\d+$/.test(x + []) ? x | 0 : undefined);
 
-        if (/^\d+$/.test(row + [])) {
-            if (temporaryIndices.length && temporaryIndices[0] < timetable.length && temporaryIndices[0] !== currentCell[0] && temporaryIndices[0] !== row && temporaryIndices[0] !== hoveredCell[0]) {
-                clearIndex(temporaryIndices[0], null);
-            }
-
-            if (row < timetable.length) {
-                selectIndex(row, null);
-            }
+        if (temporaryIndices.length && (temporaryIndices[0] < timetable.length && temporaryIndices[0] !== currentCell[0] && temporaryIndices[0] !== row && temporaryIndices[0] !== hoveredCell[0] || row === undefined)) {
+            clearIndex(temporaryIndices[0], null);
         }
 
-        if (/^\d+$/.test(cell + [])) {
-            if (temporaryIndices.length && temporaryIndices[1] < timetable[0].length && temporaryIndices[1] !== currentCell[1] && temporaryIndices[1] !== cell && temporaryIndices[1] !== hoveredCell[1]) {
-                clearIndex(null, temporaryIndices[1]);
-            }
+        if (row < timetable.length) {
+            selectIndex(row, null);
+        }
 
-            if (cell < timetable[0].length) {
-                selectIndex(null, cell);
-            }
+        if (temporaryIndices.length && (temporaryIndices[1] < timetable[0].length && temporaryIndices[1] !== currentCell[1] && temporaryIndices[1] !== cell && temporaryIndices[1] !== hoveredCell[1] || cell === undefined)) {
+            clearIndex(null, temporaryIndices[1]);
+        }
+
+        if (cell < timetable[0].length) {
+            selectIndex(null, cell);
         }
 
         if (completed) temporaryIndices = [];
@@ -272,7 +309,7 @@ gotoPrompt.addEventListener('keydown', e => {
             selectCellIndex(row, cell);
         }
 
-        if (/^\d+$/.test(temporaryIndices[0] + []) && /^\d+$/.test(temporaryIndices[1] + [])) {
+        if (/^\d+$/.test(temporaryIndices[0] + []) && /^\d+$/.test(temporaryIndices[1] + []) && (temporaryIndices[0] !== row || temporaryIndices[1] !== cell)) {
             clearCellIndex(...temporaryIndices);
         }
 
@@ -307,13 +344,21 @@ window.addEventListener('keyup', e => {
                 clearSelection();
             }
             break;
+        case 'Backspace':
+            if (!gotoPromptVisible) {
+                clearCell(currentCell);
+            }
+            break;
         case '/':
-        case '\'':
             showPrompt(e.key);
             break;
+        case '\'':
+            if (currentCell.length) {
+                showPrompt(e.key);
+            }
+            break;
         default:
-            //console.log(e.key);
-            console.log();
+            console.log(e.key);
     }
 }, false);
 
