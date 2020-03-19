@@ -5,12 +5,13 @@ const gotoPrompt = document.querySelector('#goto-prompt');
 
 let timetable = getData();
 
-let currentCell;
-let hoveredCell;
+let currentCell = [];
+let hoveredCell = [];
 
 let gotoPromptVisible = false;
 let promptText;
 let promptCmd;
+let temporaryIndices = [];
 
 let cursorPos;
 
@@ -20,19 +21,46 @@ function clearElement(elem) {
     }
 }
 
+function selectIndex(row, cell) {
+    if (/^\d+$/.test(row + []) && row < timetable.length) {
+        document.querySelector(`#row-${row}`).classList.add('active-index');
+    }
+    if (/^\d+$/.test(cell + []) && cell < timetable[0].length) {
+        document.querySelector(`#cell-${cell}`).classList.add('active-index');
+    }
+}
+
+function clearIndex(row, cell) {
+    if (/^\d+$/.test(row + []) && row < timetable.length) {
+        document.querySelector(`#row-${row}`).classList.remove('active-index');
+    }
+    if (/^\d+$/.test(cell + []) && cell < timetable[0].length) {
+        document.querySelector(`#cell-${cell}`).classList.remove('active-index');
+    }
+}
+
+function selectCellIndex(row, cell) {
+    if (/^\d+$/.test(row + []) && row < timetable.length && /^\d+$/.test(cell + []) && cell < timetable[0].length) {
+        document.querySelector(`#c-${row}-${cell}`).classList.add('active-cell');
+    }
+}
+
+function clearCellIndex(row, cell) {
+    if (/^\d+$/.test(row + []) && row < timetable.length && /^\d+$/.test(cell + []) && cell < timetable[0].length) {
+        document.querySelector(`#c-${row}-${cell}`).classList.remove('active-cell');
+    }
+}
+
 function selectCell(row, cell) {
-    if (currentCell && currentCell.length) {
-        document.querySelector(`#row-${currentCell[0]}`).classList.remove('active-index');
-        document.querySelector(`#cell-${currentCell[1]}`).classList.remove('active-index');
-        document.querySelector(`#c-${currentCell[0]}-${currentCell[1]}`).classList.remove('active-cell');
+    if (currentCell.length) {
+        clearIndex(...currentCell);
+        clearCellIndex(...currentCell);
     }
     currentCell = [row, cell];
     hoveredCell = [];
 
-    document.querySelector(`#row-${currentCell[0]}`).classList.add('active-index');
-    document.querySelector(`#cell-${currentCell[1]}`).classList.add('active-index');
-
-    document.querySelector(`#c-${currentCell[0]}-${currentCell[1]}`).classList.add('active-cell');
+    selectIndex(...currentCell);
+    selectCellIndex(...currentCell);
 }
 
 function renderTable(timetable) {
@@ -71,29 +99,36 @@ function renderTable(timetable) {
                 cellElement.setAttribute('id', `c-${rowIndex}-${cellIndex - 1}`);
 
                 cellElement.addEventListener('mouseenter', e => {
-                    const [rowIndex, cellIndex] = e.currentTarget.getAttribute('id').split('-').slice(1);
+                    const [rowIndex, cellIndex] = e.currentTarget.getAttribute('id').split('-').slice(1).map(x => x | 0);
 
-                    if (hoveredCell && hoveredCell.length) {
-                        document.querySelector(`#row-${hoveredCell[0]}`).classList.remove('active-index');
-                        document.querySelector(`#cell-${hoveredCell[1]}`).classList.remove('active-index');
+                    if (hoveredCell.length) {
+                        if (hoveredCell[0] !== currentCell[0]) {
+                            clearIndex(hoveredCell[0], null);
+                        }
+
+                        if (hoveredCell[1] !== currentCell[1]) {
+                            clearIndex(null, hoveredCell[1]);
+                        }
                     }
 
-                    if (!currentCell || rowIndex !== currentCell[0] && cellIndex !== currentCell[1]) {
+                    if (rowIndex !== currentCell[0] && cellIndex !== currentCell[1]) {
                         hoveredCell = [rowIndex, cellIndex];
-                        document.querySelector(`#row-${hoveredCell[0]}`).classList.add('active-index');
-                        document.querySelector(`#cell-${hoveredCell[1]}`).classList.add('active-index');
+                        selectIndex(...hoveredCell, currentCell);
                     }
                 }, false);
                 cellElement.addEventListener('mouseleave', e => {
-                    const [rowIndex, cellIndex] = e.currentTarget.getAttribute('id').split('-').slice(1);
+                    const [rowIndex, cellIndex] = e.currentTarget.getAttribute('id').split('-').slice(1).map(x => x | 0);
 
-                    if (hoveredCell && hoveredCell.length && hoveredCell[0] === rowIndex && hoveredCell[1] === cellIndex) {
-                        document.querySelector(`#row-${rowIndex}`).classList.remove('active-index');
-                        document.querySelector(`#cell-${cellIndex}`).classList.remove('active-index');
+                    if (rowIndex !== currentCell[0]) {
+                        clearIndex(rowIndex, null);
+                    }
+
+                    if (cellIndex !== currentCell[1]) {
+                        clearIndex(null, cellIndex);
                     }
                 }, false);
                 cellElement.addEventListener('click', e => {
-                    const indices = e.currentTarget.getAttribute('id').split('-').slice(1);
+                    const indices = e.currentTarget.getAttribute('id').split('-').slice(1).map(x => x | 0);
                     selectCell(...indices);
                 }, false);
             }
@@ -124,10 +159,9 @@ function renderTable(timetable) {
 }
 
 function clearSelection() {
-    if (currentCell && currentCell.length) {
-        document.querySelector(`#row-${currentCell[0]}`).classList.remove('active-index');
-        document.querySelector(`#cell-${currentCell[1]}`).classList.remove('active-index');
-        document.querySelector(`#c-${currentCell[0]}-${currentCell[1]}`).classList.remove('active-cell');
+    if (currentCell.length) {
+        clearIndex(...currentCell);
+        clearCellIndex(...currentCell);
 
         currentCell = [];
     }
@@ -146,10 +180,11 @@ function setCursor(col, elem) {
     selection.addRange(range);
 }
 
-const gotoSequence = [/^\/\d+$/, /^\/\d+\.$/, /^\/\d+\.\d+$/];
-const swapSequence = [/^\'\d+$/, /^\'\d+\.$/, /^\'\d+\.\d+$/, /^\'\d+\.\d+\,$/, /^\'\d+\.\d+\,\d+$/, /^\'\d+\.\d+\,\d+\.$/, /^\'\d+\.\d+\,\d+\.\d+$/];
+const gotoSequence = [/^\/\d+$/, /^\/\d+\.$/, /^\/\d+\.\d+$/, /^\/\d+\.\d+\,$/, /^\/\d+\.\d+\,\d+$/, /^\/\d+\.\d+\,\d+\.$/, /^\/\d+\.\d+\,\d+\.\d+$/];
+const swapSequence = [/^\'\d+$/, /^\'\d+\.$/, /^\'\d+\.\d+$/];
 gotoPrompt.addEventListener('keydown', e => {
     e.preventDefault();
+    let completed = false;
 
     const key = e.key;
     if (promptText.length < 18) {
@@ -192,14 +227,56 @@ gotoPrompt.addEventListener('keydown', e => {
         }
     } else if (key === 'Enter') {
         if (promptCmd === '/') {
-            const [row, cell] = promptText.slice(1).split('.').map(x => x | 0);
-            if (row < timetable.length && cell < timetable[0].length) {
-                selectCell(row, cell);
+            if (gotoSequence[2].test(promptText) || gotoSequence[6].test(promptText)) {
+                const [row, cell] = promptText.slice(1).split('.').map(x => x | 0);
+                if (row < timetable.length && cell < timetable[0].length) {
+                    selectCell(row, cell);
+                    completed = true;
+                }
             }
         } else {
 
         }
-        gotoPrompt.style.display = 'none';
+
+        if (completed) {
+            gotoPrompt.style.display = 'none';
+        }
+    }
+
+    if (promptCmd === '/') {
+        const [row, cell] = promptText.slice(1).split('.').map(x => /^\d+$/.test(x + []) ? x | 0 : undefined);
+
+        if (/^\d+$/.test(row + [])) {
+            if (temporaryIndices.length && temporaryIndices[0] < timetable.length && temporaryIndices[0] !== currentCell[0] && temporaryIndices[0] !== row && temporaryIndices[0] !== hoveredCell[0]) {
+                clearIndex(temporaryIndices[0], null);
+            }
+
+            if (row < timetable.length) {
+                selectIndex(row, null);
+            }
+        }
+
+        if (/^\d+$/.test(cell + [])) {
+            if (temporaryIndices.length && temporaryIndices[1] < timetable[0].length && temporaryIndices[1] !== currentCell[1] && temporaryIndices[1] !== cell && temporaryIndices[1] !== hoveredCell[1]) {
+                clearIndex(null, temporaryIndices[1]);
+            }
+
+            if (cell < timetable[0].length) {
+                selectIndex(null, cell);
+            }
+        }
+
+        if (completed) temporaryIndices = [];
+
+        if (/^\d+$/.test(row + []) && row < timetable.length && /^\d+$/.test(cell + []) && cell < timetable[0].length) {
+            selectCellIndex(row, cell);
+        }
+
+        if (/^\d+$/.test(temporaryIndices[0] + []) && /^\d+$/.test(temporaryIndices[1] + [])) {
+            clearCellIndex(...temporaryIndices);
+        }
+
+        temporaryIndices = [row !== undefined ? row : temporaryIndices[0], cell !== undefined ? cell : temporaryIndices[1]];
     }
 
     setCursor(cursorPos, gotoPrompt);
@@ -209,6 +286,7 @@ function showPrompt(cmd) {
     gotoPromptVisible = true;
     promptText = cmd;
     promptCmd = cmd;
+    temporaryIndices = [];
 
     gotoPrompt.innerText = cmd;
     gotoPrompt.style.display = 'block';
@@ -224,6 +302,7 @@ window.addEventListener('keyup', e => {
             if (gotoPromptVisible) {
                 gotoPrompt.style.display = 'none';
                 gotoPromptVisible = false;
+                clearIndex(...temporaryIndices);
             } else {
                 clearSelection();
             }
@@ -233,7 +312,8 @@ window.addEventListener('keyup', e => {
             showPrompt(e.key);
             break;
         default:
-            console.log(e.key);
+            //console.log(e.key);
+            console.log();
     }
 }, false);
 

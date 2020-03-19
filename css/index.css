@@ -56,7 +56,8 @@ html, body {
 
 .cell {
     border-left: solid 1px #3e3e3e;
-    text-align: center;
+    text-align: left;
+    padding-left: 20px;
     font-family: helvetica;
     font-weight: 400;
     font-size: 12pt;
