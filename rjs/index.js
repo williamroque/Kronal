@@ -8,6 +8,8 @@ let timetable = getData();
 let currentCell = [];
 let hoveredCell = [];
 
+let selectedCells = [];
+
 let gotoPromptVisible = false;
 let promptText;
 let promptCmd;
@@ -86,6 +88,8 @@ function selectCell(row, cell) {
     }
     currentCell = [row, cell];
     hoveredCell = [];
+    
+    selectedCells.push(currentCell);
 
     selectIndex(...currentCell);
     selectCellIndex(...currentCell);
@@ -187,12 +191,13 @@ function renderTable(timetable) {
 }
 
 function clearSelection() {
-    if (currentCell.length) {
-        clearIndex(...currentCell);
-        clearCellIndex(...currentCell);
+    selectedCells.forEach(cell => {
+        clearIndex(...cell);
+        clearCellIndex(...cell);
 
         currentCell = [];
-    }
+        selectedCells = [];
+    });
 }
 
 gotoPrompt.addEventListener('focusout', () => {
@@ -227,7 +232,7 @@ gotoPrompt.addEventListener('keydown', e => {
         }
     }
 
-    if (key === 'Backspace') {
+    if (key === 'Backspace' || key === 'Clear') {
         if (promptText.length === 1) {
             gotoPrompt.style.display = 'none';
         } else {
@@ -281,10 +286,12 @@ gotoPrompt.addEventListener('keydown', e => {
         if (completed) {
             gotoPrompt.style.display = 'none';
             gotoPromptVisible = false;
+            promptText = '';
+            promptCmd = '';
         }
     }
 
-    if (promptCmd === '/') {
+    if (promptCmd === '/' || promptCmd === '\'') {
         const [row, cell] = promptText.slice(1).split('.').map(x => /^\d+$/.test(x + []) ? x | 0 : undefined);
 
         if (temporaryIndices.length && (temporaryIndices[0] < timetable.length && temporaryIndices[0] !== currentCell[0] && temporaryIndices[0] !== row && temporaryIndices[0] !== hoveredCell[0] || row === undefined)) {
@@ -307,6 +314,7 @@ gotoPrompt.addEventListener('keydown', e => {
 
         if (/^\d+$/.test(row + []) && row < timetable.length && /^\d+$/.test(cell + []) && cell < timetable[0].length) {
             selectCellIndex(row, cell);
+            selectedCells.push([row, cell]);
         }
 
         if (/^\d+$/.test(temporaryIndices[0] + []) && /^\d+$/.test(temporaryIndices[1] + []) && (temporaryIndices[0] !== row || temporaryIndices[1] !== cell)) {
@@ -344,17 +352,19 @@ window.addEventListener('keyup', e => {
                 clearSelection();
             }
             break;
+        case 'Clear':
         case 'Backspace':
             if (!gotoPromptVisible) {
                 clearCell(currentCell);
             }
             break;
         case '/':
-            showPrompt(e.key);
+            showPrompt('/');
             break;
+        case '*':
         case '\'':
             if (currentCell.length) {
-                showPrompt(e.key);
+                showPrompt('\'');
             }
             break;
         default:
