@@ -10,10 +10,10 @@
 	["Algebra","Physics","Politics","Spanish","Linguistics","","Hebrew"],
 	["Break","History","Break","Portuguese","Break","","Music"],
 	["Literature","Break","Geography","Break","Portuguese","","Scriptures"],
-	["Compsci","Biology","English","Economics","Physics","","Homework"],
-	["Chemistry","Literature","Art","Latin","English","","Homework"],
-	["Greek","Trigonometry","French","Compsci","Piano","","Homework"],
-	["Piano","French","Piano","Piano","","","Homework"],
+	["Compsci","Biology","English","Economics","Physics","",""],
+	["Chemistry","Literature","Art","Latin","English","",""],
+	["Greek","Trigonometry","French","Compsci","Piano","",""],
+	["Piano","French","Piano","Piano","","",""],
 	["","Piano","","","","",""],
 	["","","","","","",""]
 ]

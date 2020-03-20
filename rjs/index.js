@@ -18,19 +18,29 @@ let temporaryIndices = [];
 let cursorPos;
 
 let actions = [];
+let undoBuffer = [];
 
 function renderText(cell, text) {
     document.querySelector(`#c-${cell[0]}-${cell[1]}`).innerText = text;
 }
 
-function swapCells(cell1, cell2) {
+function swapCells(cell1, cell2, action = true) {
+    if (action) {
     actions.push({ type: 'swap', cells: [cell1, cell2] });
+    undoBuffer = [];
+    }
 
     [timetable[cell1[0]][cell1[1]], timetable[cell2[0]][cell2[1]]] =
         [timetable[cell2[0]][cell2[1]], timetable[cell1[0]][cell1[1]]];
 
     renderText(cell1, timetable[cell1[0]][cell1[1]]);
     renderText(cell2, timetable[cell2[0]][cell2[1]]);
+}
+
+function setCell(cell, text) {
+    timetable[cell[0]][cell[1]] = text;
+
+    renderText(cell, text);
 }
 
 function clearCell(cell) {
@@ -40,9 +50,35 @@ function clearCell(cell) {
         content: timetable[cell[0]][cell[1]]
     });
 
-    timetable[cell[0]][cell[1]] = '';
+    undoBuffer = [];
 
-    renderText(cell, '');
+    setCell(cell, '');
+}
+
+function undo() {
+    if (actions.length) {
+        const action = actions.pop();
+        undoBuffer.push(action);
+
+        if (action.type === 'swap') {
+            swapCells(...action.cells, false);
+        } else {
+            setCell(action.cell, action.content);
+        }
+    }
+}
+
+function redo() {
+    if (undoBuffer.length) {
+        const action = undoBuffer.pop();
+        actions.push(action);
+
+        if (action.type === 'swap') {
+            swapCells(...action.cells, false);
+        } else {
+            setCell(action.cell, '');
+        }
+    }
 }
 
 function clearElement(elem) {
@@ -88,7 +124,7 @@ function selectCell(row, cell) {
     }
     currentCell = [row, cell];
     hoveredCell = [];
-    
+
     selectedCells.push(currentCell);
 
     selectIndex(...currentCell);
@@ -356,6 +392,7 @@ window.addEventListener('keyup', e => {
         case 'Backspace':
             if (!gotoPromptVisible) {
                 clearCell(currentCell);
+                clearSelection();
             }
             break;
         case '/':
@@ -366,6 +403,12 @@ window.addEventListener('keyup', e => {
             if (currentCell.length) {
                 showPrompt('\'');
             }
+            break;
+        case 'z':
+            undo();
+            break;
+        case 'Z':
+            redo();
             break;
         default:
             console.log(e.key);
