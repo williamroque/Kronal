@@ -1,3 +1,5 @@
+const isDev = require('electron-is-dev');
+
 const headers = ['TIME', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 
 const tableElement = document.querySelector('#timetable');
@@ -26,8 +28,8 @@ function renderText(cell, text) {
 
 function swapCells(cell1, cell2, action = true) {
     if (action) {
-    actions.push({ type: 'swap', cells: [cell1, cell2] });
-    undoBuffer = [];
+        actions.push({ type: 'swap', cells: [cell1, cell2] });
+        undoBuffer = [];
     }
 
     [timetable[cell1[0]][cell1[1]], timetable[cell2[0]][cell2[1]]] =
@@ -405,10 +407,14 @@ window.addEventListener('keyup', e => {
             }
             break;
         case 'z':
-            undo();
+            if (e.metaKey || isDev) {
+                undo();
+            }
             break;
         case 'Z':
-            redo();
+            if (e.metaKey || isDev) {
+                redo();
+            }
             break;
         default:
             console.log(e.key);
