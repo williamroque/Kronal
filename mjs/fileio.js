@@ -33,7 +33,7 @@ class FileIO {
             for (let rowIndex = 0; rowIndex < 17; rowIndex++) {
                 let row = [];
                 for (let cellIndex = 0; cellIndex < 7; cellIndex++) {
-                    row.push('Homework');
+                    row.push('');
                 }
                 table.push(row);
             }

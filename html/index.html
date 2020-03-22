@@ -1,18 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Kronal</title>
     <link rel="stylesheet" href="../css/index.css">
 </head>
+
 <body>
     <div id="titlebar"></div>
     <div id="main-wrapper">
-        <div id="subjects"></div>
+        <div id="subjects-wrapper">
+            <div class="shift-indicator" id="left-indicator">j</div>
+            <table id="subjects">
+                <tr id="subjects-row">
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr id="subjects-index-row">
+                    <td class="subject-index" id="subject-index-0">1</td>
+                    <td class="subject-index" id="subject-index-1">2</td>
+                    <td class="subject-index" id="subject-index-2">3</td>
+                    <td class="subject-index" id="subject-index-3">4</td>
+                    <td class="subject-index" id="subject-index-4">5</td>
+                    <td class="subject-index" id="subject-index-5">6</td>
+                    <td class="subject-index" id="subject-index-6">7</td>
+                    <td class="subject-index" id="subject-index-7">8</td>
+                </tr>
+            </table>
+            <div class="shift-indicator" id="right-indicator">k</div>
+        </div>
         <table id="timetable"></table>
     </div>
-    <div contenteditable id="goto-prompt" />
+    <div contenteditable id="prompt" />
     <script src="../rjs/ipcr.js"></script>
     <script src="../rjs/index.js"></script>
 </body>
+
 </html>

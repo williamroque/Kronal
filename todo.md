@@ -5,12 +5,13 @@
     - [x] Swap cells by selecting them, then inputing target with `'{row}.{cell} + Enter`
         - [x] Add incremental highlighting
     - [x] Clear cells via backspace
-- [ ] Add all unique subjects to the subject bar with number of occurrences
+- [x] Add all unique subjects to the subject bar with number of occurrences
     - [ ] Create prompt for adding subjects
     - [ ] Allow adding of subject to schedule by selecting it, then either clicking on cell or inputing it in the format: `/{row}.{cell} + Enter`
-    - [ ] Shortcut to toggle focus between subject bar and timetable (`s`/`t`), `Esc` to remove focus, shows hidden index numbers on focused area
-    - [ ] `j` and `k` to navigate left and right between 10 subjects at a time, selected using `0-9`
+    - [x] Shortcut to toggle focus between subject bar and timetable (`s`/`t`), `Esc` to remove focus, shows hidden index numbers on focused area
+    - [x] `j` and `k` to navigate left and right between 10 subjects at a time, selected using `0-9`
     - [ ] Delete subject by selecting it, then pressing backspace
+- [x] Search feature
 - [ ] Have default schedule (and ability to set schedule as default) and reset button with weekly automatic resets
 - [x] Have `Cmd+Z`/`Cmd+Shift+Z`
     - [x] Set to use meta key for production
