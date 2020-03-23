@@ -13,7 +13,7 @@ let selectedSubjectCell;
 
 let currentRange = 0;
 
-let timetable = getData();
+let { timestamp, timetable } = getData();
 
 let searchBuffer = [];
 let searchIndex = 0;
@@ -67,6 +67,8 @@ function swapCells(cell1, cell2, action = true) {
 
     renderText(cell1, timetable[cell1[0]][cell1[1]]);
     renderText(cell2, timetable[cell2[0]][cell2[1]]);
+
+    update(timetable, timestamp);
 }
 
 function setCell(cell, text, action = true) {
@@ -82,6 +84,8 @@ function setCell(cell, text, action = true) {
 
     timetable[cell[0]][cell[1]] = text;
     renderText(cell, text);
+
+    update(timetable, timestamp);
 }
 
 function clearSubjectSelection() {

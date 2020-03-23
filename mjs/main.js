@@ -47,6 +47,13 @@ ipcMain.on('get-data', event => {
     event.returnValue = JSON.parse(fileio.readData(fileio.dataPath));
 });
 
+ipcMain.on('update', (event, data, timestamp) => {
+    event.returnValue = fileio.writeData(JSON.stringify({
+        timestamp: timestamp,
+        timetable: data
+    }), fileio.dataPath);
+});
+
 app.on('ready', createWindow);
 
 app.on('window-all-closed', () => {

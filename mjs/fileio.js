@@ -7,6 +7,7 @@ class FileIO {
         this.path = app.getPath('userData') + path.normalize('/Data/');
 
         this.dataPath = this.path + 'table.json';
+        this.defaultPath = this.path + 'default.json';
 
         this.dataSet = false;
         if (
@@ -29,15 +30,38 @@ class FileIO {
                 }
                 fs.mkdirSync(this.path);
             }
-            let table = [];
-            for (let rowIndex = 0; rowIndex < 17; rowIndex++) {
-                let row = [];
-                for (let cellIndex = 0; cellIndex < 7; cellIndex++) {
-                    row.push('');
+
+            if (!this.pathExists(this.defaultPath)) {
+                let table = [];
+                for (let rowIndex = 0; rowIndex < 17; rowIndex++) {
+                    let row = [];
+                    for (let cellIndex = 0; cellIndex < 7; cellIndex++) {
+                        row.push('');
+                    }
+                    table.push(row);
                 }
-                table.push(row);
+                this.writeData(JSON.stringify({timestamp: new Date().toDateString(), timetable: table}), this.dataPath);
+            } else {
+                this.writeData(JSON.stringify({
+                    timestamp: new Date().toDateString(),
+                    timetable: JSON.parse(this.readData(this.defaultPath))
+                }), this.dataPath);
             }
-            this.writeData(JSON.stringify(table), this.dataPath);
+        } else {
+            const data = JSON.parse(this.readData(this.dataPath));
+            let then = new Date(data.timestamp);
+            let now = new Date();
+
+            then.setDate(then.getDate() - then.getDay());
+            now.setDate(now.getDate() - now.getDay());
+
+            const weeks = (now.getTime() - then.getTime()) / 1000 / 60 / 60 / 24 / 7 | 0;
+            if (weeks) {
+                this.writeData(JSON.stringify({
+                    timestamp: new Date().toDateString(),
+                    timetable: JSON.parse(this.readData(this.defaultPath))
+                }), this.dataPath);
+            }
         }
     }
 
