@@ -52,23 +52,27 @@ let cursorPos;
 let actions = [];
 let undoBuffer = [];
 
+let clipboard;
+
 function renderText(cell, text) {
     document.querySelector(`#c-${cell[0]}-${cell[1]}`).innerText = text;
 }
 
 function swapCells(cell1, cell2, action = true) {
-    if (action) {
-        actions.push({ type: 'swap', cells: [cell1, cell2] });
-        undoBuffer = [];
+    if (!(cell1[0] === cell2[0] && cell1[1] === cell2[1])) {
+        if (action) {
+            actions.push({ type: 'swap', cells: [cell1, cell2] });
+            undoBuffer = [];
+        }
+
+        [timetable[cell1[0]][cell1[1]], timetable[cell2[0]][cell2[1]]] =
+            [timetable[cell2[0]][cell2[1]], timetable[cell1[0]][cell1[1]]];
+
+        renderText(cell1, timetable[cell1[0]][cell1[1]]);
+        renderText(cell2, timetable[cell2[0]][cell2[1]]);
+
+        update(timetable, timestamp);
     }
-
-    [timetable[cell1[0]][cell1[1]], timetable[cell2[0]][cell2[1]]] =
-        [timetable[cell2[0]][cell2[1]], timetable[cell1[0]][cell1[1]]];
-
-    renderText(cell1, timetable[cell1[0]][cell1[1]]);
-    renderText(cell2, timetable[cell2[0]][cell2[1]]);
-
-    update(timetable, timestamp);
 }
 
 function setCell(cell, text, action = true) {
@@ -86,6 +90,8 @@ function setCell(cell, text, action = true) {
     renderText(cell, text);
 
     update(timetable, timestamp);
+    compileSubjects();
+    renderSubjects(currentRange);
 }
 
 function clearSubjectSelection() {
@@ -166,27 +172,28 @@ function clearIndex(row, cell) {
     }
 }
 
-function selectCellIndex(row, cell) {
+function selectCellIndex(row, cell, type) {
     if (/^\d+$/.test(row + []) && row < timetable.length && /^\d+$/.test(cell + []) && cell < timetable[0].length) {
         document.querySelector(`#c-${row}-${cell}`).classList.add('active-cell');
+        if (type === 'objective') document.querySelector(`#c-${row}-${cell}`).classList.add('objective');
     }
 }
 
 function clearCellIndex(row, cell) {
     if (/^\d+$/.test(row + []) && row < timetable.length && /^\d+$/.test(cell + []) && cell < timetable[0].length) {
         document.querySelector(`#c-${row}-${cell}`).classList.remove('active-cell');
+        document.querySelector(`#c-${row}-${cell}`).classList.remove('objective');
     }
 }
 
 function selectCell(row, cell) {
-    console.log(row, cell);
     currentCell = [row, cell];
     hoveredCell = [];
 
     selectedCells.push(currentCell);
 
     selectIndex(...currentCell);
-    selectCellIndex(...currentCell);
+    selectCellIndex(...currentCell, 'subjective');
 }
 
 function selectSubjectCell(cell) {
@@ -198,6 +205,37 @@ function selectSubjectCell(cell) {
     selectedSubjectCell = cell | 0;
     document.querySelector(`#subject-cell-${selectedSubjectCell - 1}`).classList.add('active-subject-cell');
     document.querySelector(`#subject-index-${selectedSubjectCell - 1}`).classList.add('active-subject-index');
+}
+
+function incrementallySelect(type) {
+    const [row, cell] = promptText.slice(1).split('.').map(x => /^\d+$/.test(x + []) ? x | 0 : undefined);
+
+    if (temporaryIndices.length && (temporaryIndices[0] < timetable.length && temporaryIndices[0] !== currentCell[0] && temporaryIndices[0] !== row && temporaryIndices[0] !== hoveredCell[0] || row === undefined)) {
+        clearIndex(temporaryIndices[0], null);
+    }
+
+    if (row < timetable.length) {
+        selectIndex(row, null);
+    }
+
+    if (temporaryIndices.length && (temporaryIndices[1] < timetable[0].length && temporaryIndices[1] !== currentCell[1] && temporaryIndices[1] !== cell && temporaryIndices[1] !== hoveredCell[1] || cell === undefined)) {
+        clearIndex(null, temporaryIndices[1]);
+    }
+
+    if (cell < timetable[0].length) {
+        selectIndex(null, cell);
+    }
+
+    if (/^\d+$/.test(row + []) && row < timetable.length && /^\d+$/.test(cell + []) && cell < timetable[0].length) {
+        selectCellIndex(row, cell, type);
+        selectedCells.push([row, cell]);
+    }
+
+    if (/^\d+$/.test(temporaryIndices[0] + []) && /^\d+$/.test(temporaryIndices[1] + []) && (temporaryIndices[0] !== row || temporaryIndices[1] !== cell)) {
+        clearCellIndex(...temporaryIndices);
+    }
+
+    temporaryIndices = [row !== undefined ? row : temporaryIndices[0], cell !== undefined ? cell : temporaryIndices[1]];
 }
 
 function renderTable(timetable) {
@@ -252,11 +290,11 @@ function renderTable(timetable) {
                     const [rowIndex, cellIndex] = e.currentTarget.getAttribute('id').split('-').slice(1).map(x => x | 0);
 
                     if (hoveredCell.length) {
-                        if (hoveredCell[0] !== currentCell[0]) {
+                        if (hoveredCell[0] !== currentCell[0] && hoveredCell[0] !== temporaryIndices[0]) {
                             clearIndex(hoveredCell[0], null);
                         }
 
-                        if (hoveredCell[1] !== currentCell[1]) {
+                        if (hoveredCell[1] !== currentCell[1] && hoveredCell[1] !== temporaryIndices[1]) {
                             clearIndex(null, hoveredCell[1]);
                         }
                     }
@@ -267,11 +305,11 @@ function renderTable(timetable) {
                 cellElement.addEventListener('mouseleave', e => {
                     const [rowIndex, cellIndex] = e.currentTarget.getAttribute('id').split('-').slice(1).map(x => x | 0);
 
-                    if (rowIndex !== currentCell[0]) {
+                    if (rowIndex !== currentCell[0] && rowIndex !== temporaryIndices[0]) {
                         clearIndex(rowIndex, null);
                     }
 
-                    if (cellIndex !== currentCell[1]) {
+                    if (cellIndex !== currentCell[1] && cellIndex !== temporaryIndices[1]) {
                         clearIndex(null, cellIndex);
                     }
                 }, false);
@@ -287,6 +325,22 @@ function renderTable(timetable) {
                         prompt.focus();
                         cursorPos = promptText.length;
                         setCursor(cursorPos, prompt);
+
+                        if (indices[0] === currentCell[0] && indices[1] === currentCell[1]) {
+                            if (currentCell[0] !== temporaryIndices[0]) {
+                                clearIndex(temporaryIndices[0], null);
+                            }
+
+                            if (currentCell[1] !== temporaryIndices[1]) {
+                                clearIndex(null, temporaryIndices[1]);
+                            }
+
+                            if (!(currentCell[0] === temporaryIndices[0] && currentCell[1] === temporaryIndices[1])) {
+                                clearCellIndex(...temporaryIndices);
+                            }
+                        } else {
+                            incrementallySelect('objective');
+                        }
                     } else {
                         clearCellSelection();
                         selectCell(...indices);
@@ -434,36 +488,8 @@ prompt.addEventListener('keydown', e => {
     }
 
     if (promptCmd === '/' || promptCmd === '\'') {
-        const [row, cell] = promptText.slice(1).split('.').map(x => /^\d+$/.test(x + []) ? x | 0 : undefined);
-
-        if (temporaryIndices.length && (temporaryIndices[0] < timetable.length && temporaryIndices[0] !== currentCell[0] && temporaryIndices[0] !== row && temporaryIndices[0] !== hoveredCell[0] || row === undefined)) {
-            clearIndex(temporaryIndices[0], null);
-        }
-
-        if (row < timetable.length) {
-            selectIndex(row, null);
-        }
-
-        if (temporaryIndices.length && (temporaryIndices[1] < timetable[0].length && temporaryIndices[1] !== currentCell[1] && temporaryIndices[1] !== cell && temporaryIndices[1] !== hoveredCell[1] || cell === undefined)) {
-            clearIndex(null, temporaryIndices[1]);
-        }
-
-        if (cell < timetable[0].length) {
-            selectIndex(null, cell);
-        }
-
         if (completed) temporaryIndices = [];
-
-        if (/^\d+$/.test(row + []) && row < timetable.length && /^\d+$/.test(cell + []) && cell < timetable[0].length) {
-            selectCellIndex(row, cell);
-            selectedCells.push([row, cell]);
-        }
-
-        if (/^\d+$/.test(temporaryIndices[0] + []) && /^\d+$/.test(temporaryIndices[1] + []) && (temporaryIndices[0] !== row || temporaryIndices[1] !== cell)) {
-            clearCellIndex(...temporaryIndices);
-        }
-
-        temporaryIndices = [row !== undefined ? row : temporaryIndices[0], cell !== undefined ? cell : temporaryIndices[1]];
+        incrementallySelect(promptCmd === '/' ? 'subjective' : 'objective');
     }
 
     setCursor(cursorPos, prompt);
@@ -530,13 +556,17 @@ function renderSubjects(range) {
 renderSubjects(currentRange);
 
 document.addEventListener('keydown', e => {
-    e.preventDefault();
+    if (!(e.key === 'q' && e.metaKey)) {
+        e.preventDefault();
+    }
     switch (e.key) {
         case 'Escape':
             if (promptVisible) {
                 prompt.style.display = 'none';
                 promptVisible = false;
+                promptCmd = '';
                 clearIndex(...temporaryIndices);
+                clearCellIndex(...temporaryIndices);
             } else {
                 clearSelection();
             }
@@ -545,7 +575,6 @@ document.addEventListener('keydown', e => {
         case 'Backspace':
             if (!promptVisible) {
                 setCell(currentCell, '');
-                clearSelection();
             }
             break;
         case '/':
@@ -597,12 +626,11 @@ document.addEventListener('keydown', e => {
         case ' ':
             if (selectedCells.length && selectedSubjectCell) {
                 setCell(selectedCells[0], Object.keys(subjects).sort()[currentRange + selectedSubjectCell - 1]);
-                compileSubjects();
-                renderSubjects(currentRange);
+                clearSubjectSelection();
             }
             break;
         case 'ArrowDown':
-            if (currentCell && currentCell[0] + 1 < timetable.length) {
+            if (currentCell.length && currentCell[0] + 1 < timetable.length) {
                 let row = currentCell[0] + 1;
                 let cell = currentCell[1];
 
@@ -611,7 +639,7 @@ document.addEventListener('keydown', e => {
             }
             break;
         case 'ArrowRight':
-            if (currentCell && currentCell[1] + 1 < timetable[0].length) {
+            if (currentCell.length && currentCell[1] + 1 < timetable[0].length) {
                 let row = currentCell[0];
                 let cell = currentCell[1] + 1;
 
@@ -620,7 +648,7 @@ document.addEventListener('keydown', e => {
             }
             break;
         case 'ArrowUp':
-            if (currentCell && currentCell[0] - 1 > 0) {
+            if (currentCell.length && currentCell[0] > 0) {
                 let row = currentCell[0] - 1;
                 let cell = currentCell[1];
 
@@ -629,7 +657,7 @@ document.addEventListener('keydown', e => {
             }
             break;
         case 'ArrowLeft':
-            if (currentCell && currentCell[0] - 1 > 0) {
+            if (currentCell.length && currentCell[1] > 0) {
                 let row = currentCell[0];
                 let cell = currentCell[1] - 1;
 
@@ -646,6 +674,23 @@ document.addEventListener('keydown', e => {
             searchIndex = (searchIndex + searchBuffer.length - 1) % searchBuffer.length;
             clearSelection();
             selectCell(...searchBuffer[searchIndex]);
+            break;
+        case 'x':
+            if (currentCell.length) {
+                clipboard = timetable[currentCell[0]][currentCell[1]];
+                setCell(currentCell, '');
+            }
+            break;
+        case 'y':
+            if (currentCell.length) {
+                clipboard = timetable[currentCell[0]][currentCell[1]];
+            }
+            break;
+        case 'p':
+            if (clipboard && currentCell.length) {
+                console.log(clipboard);
+                setCell(currentCell, clipboard);
+            }
             break;
         default:
             console.log(e.key);

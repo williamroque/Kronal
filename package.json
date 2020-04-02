@@ -7,24 +7,13 @@
         "appId": "com.quantum.kronal",
         "mac": {
             "target": "dmg",
-            "icon": "assets/icon.png",
+            "icon": "assets/icon.icns",
             "darkModeSupport": true
-        },
-        "win": {
-            "target": "nsis",
-            "icon": "assets/icon.png"
-        },
-        "linux": {
-            "target": "AppImage",
-            "icon": "assets/icon.png"
         }
     },
     "scripts": {
         "start": "electron .",
-        "dist-all": "electron-builder -mwl",
-        "dist-win": "electron-builder -w",
-        "dist-lin": "electron-builder -l",
-        "dist-mac": "electron-builder -m"
+        "dist": "electron-builder -m"
     },
     "main": "mjs/main.js",
     "author": "William Roque",

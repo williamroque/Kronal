@@ -202,6 +202,11 @@ html, body {
     text-transform: uppercase;
 }
 
+.objective {
+    border: solid 2px #56728a;
+    color: #6d8da5 !important;
+}
+
 .row-index {
     font-size: 10pt;
     font-family: courier;
