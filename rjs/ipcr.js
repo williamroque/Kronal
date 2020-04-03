@@ -4,6 +4,6 @@ function getData() {
     return ipcRenderer.sendSync('get-data');
 }
 
-function update(data, timestamp) {
-    ipcRenderer.sendSync('update', data, timestamp);
+function update(data, subjects, timestamp) {
+    ipcRenderer.sendSync('update', data, subjects, timestamp);
 }

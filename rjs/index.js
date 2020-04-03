@@ -9,28 +9,31 @@ const subjectRow = document.querySelector('#subjects-row');
 const leftIndicator = document.querySelector('#left-indicator');
 const rightIndicator = document.querySelector('#right-indicator');
 
+const widthTest = document.querySelector('#width-test');
+
 let selectedSubjectCell;
 
 let currentRange = 0;
 
-let { timestamp, timetable } = getData();
+let { timestamp, timetable, subjects } = getData();
 
 let searchBuffer = [];
 let searchIndex = 0;
 
-let subjects = {};
+let subjectCountMap = {};
+subjects.forEach(subject => {
+    subjectCountMap[subject] = 0;
+});
 function compileSubjects() {
-    subjects = {};
+    subjects.forEach(subject => {
+        subjectCountMap[subject] = 0;
+    });
     for (let rowIndex = 0; rowIndex < timetable.length; rowIndex++) {
         for (let cellIndex = 0; cellIndex < timetable[0].length; cellIndex++) {
             let cell = timetable[rowIndex][cellIndex];
 
             if (cell) {
-                if (subjects.hasOwnProperty(cell)) {
-                    subjects[cell]++;
-                } else {
-                    subjects[cell] = 1;
-                }
+                subjectCountMap[cell]++;
             }
         }
     }
@@ -71,7 +74,7 @@ function swapCells(cell1, cell2, action = true) {
         renderText(cell1, timetable[cell1[0]][cell1[1]]);
         renderText(cell2, timetable[cell2[0]][cell2[1]]);
 
-        update(timetable, timestamp);
+        update(timetable, subjects, timestamp);
     }
 }
 
@@ -89,17 +92,17 @@ function setCell(cell, text, action = true) {
     timetable[cell[0]][cell[1]] = text;
     renderText(cell, text);
 
-    update(timetable, timestamp);
+    update(timetable, subjects, timestamp);
     compileSubjects();
     renderSubjects(currentRange);
 }
 
 function clearSubjectSelection() {
-    if (selectedSubjectCell) {
+    if (selectedSubjectCell !== undefined) {
         document.querySelector(`#subject-cell-${selectedSubjectCell - 1}`).classList.remove('active-subject-cell');
         document.querySelector(`#subject-index-${selectedSubjectCell - 1}`).classList.remove('active-subject-index');
 
-        selectedSubjectCell = null;
+        selectedSubjectCell = undefined;
     }
 }
 
@@ -197,7 +200,7 @@ function selectCell(row, cell) {
 }
 
 function selectSubjectCell(cell) {
-    if (selectedSubjectCell) {
+    if (selectedSubjectCell !== undefined) {
         document.querySelector(`#subject-cell-${selectedSubjectCell - 1}`).classList.remove('active-subject-cell');
         document.querySelector(`#subject-index-${selectedSubjectCell - 1}`).classList.remove('active-subject-index');
     }
@@ -396,12 +399,14 @@ prompt.addEventListener('keydown', e => {
     let completed = false;
 
     const key = e.key;
-    if (promptText.length < 18) {
+    if (promptText.length < 18 && key.length === 1) {
         let proText = promptText.slice(0, cursorPos) + key + promptText.slice(cursorPos, prompt.length);
+        widthTest.innerText = proText.slice(1);
         if (
             promptCmd === '/' && gotoSequence.some(pattern => pattern.test(proText)) ||
             promptCmd === '\'' && swapSequence.some(pattern => pattern.test(proText)) ||
-            promptCmd === '?' && /^[A-Za-z]$/.test(key)
+            promptCmd === '?' && /^[A-Za-z]$/.test(key) ||
+            promptCmd === '+' && widthTest.clientWidth + 1 <= 85
         ) {
             promptText = proText;
             prompt.innerText = promptText;
@@ -459,7 +464,7 @@ prompt.addEventListener('keydown', e => {
                     completed = true;
                 }
             }
-        } else {
+        } else if (promptCmd === '?') {
             if (promptText.slice(1)) {
                 timetable.forEach((row, i) => {
                     row.forEach((cell, j) => {
@@ -476,6 +481,15 @@ prompt.addEventListener('keydown', e => {
                     selectCell(...searchBuffer[searchIndex]);
                     completed = true;
                 }
+            }
+        } else {
+            if (subjects.indexOf(promptText.slice(1)) < 0) {
+                subjects.push(promptText.slice(1));
+                subjects = subjects.sort();
+                compileSubjects();
+                renderSubjects(currentRange);
+                update(timetable, subjects, timestamp);
+                completed = true;
             }
         }
 
@@ -516,14 +530,14 @@ function renderSubjects(range) {
         leftIndicator.classList.remove('shift-indicator-disabled');
     }
 
-    if (range + 8 >= Object.keys(subjects).length) {
+    if (range + 8 >= Object.keys(subjectCountMap).length) {
         rightIndicator.classList.add('shift-indicator-disabled');
     } else {
         rightIndicator.classList.remove('shift-indicator-disabled');
     }
 
     const subjectCellElements = [...subjectRow.childNodes].filter(node => node.nodeType === Node.ELEMENT_NODE);
-    Object.keys(subjects).sort().slice(range, range + 8).forEach((subject, i) => {
+    subjects.sort().slice(range, range + 8).forEach((subject, i) => {
         const subjectCellElement = subjectCellElements[i];
         if (subjectCellElement.firstChild) {
             subjectCellElement.firstChild.remove();
@@ -545,7 +559,7 @@ function renderSubjects(range) {
 
         const subjectCountElement = document.createElement('DIV');
         subjectCountElement.classList.add('subject-count');
-        const subjectCount = document.createTextNode(subjects[subject]);
+        const subjectCount = document.createTextNode(subjectCountMap[subject]);
         subjectCountElement.appendChild(subjectCount);
 
         subjectElement.appendChild(subjectTitleElement);
@@ -574,7 +588,15 @@ document.addEventListener('keydown', e => {
         case 'Clear':
         case 'Backspace':
             if (!promptVisible) {
-                setCell(currentCell, '');
+                if (selectedSubjectCell !== undefined) {
+                    subjects = subjects.filter((_, i) => i !== currentRange + selectedSubjectCell - 1).sort();
+                    compileSubjects();
+                    renderSubjects(currentRange);
+                    update(timetable, subjects, timestamp);
+                    clearSubjectSelection();
+                } else {
+                    setCell(currentCell, '');
+                }
             }
             break;
         case '/':
@@ -588,6 +610,9 @@ document.addEventListener('keydown', e => {
             break;
         case '?':
             showPrompt('?');
+            break;
+        case '+':
+            showPrompt('+');
             break;
         case 'z':
             if (e.metaKey || isDev) {
@@ -606,7 +631,7 @@ document.addEventListener('keydown', e => {
             clearSubjectSelection();
             break;
         case 'k':
-            if (currentRange + 8 < Object.keys(subjects).length) {
+            if (currentRange + 8 < Object.keys(subjectCountMap).length) {
                 renderSubjects(++currentRange);
             }
             clearSubjectSelection();
@@ -624,8 +649,8 @@ document.addEventListener('keydown', e => {
             }
             break;
         case ' ':
-            if (selectedCells.length && selectedSubjectCell) {
-                setCell(selectedCells[0], Object.keys(subjects).sort()[currentRange + selectedSubjectCell - 1]);
+            if (selectedCells.length && selectedSubjectCell !== undefined) {
+                setCell(selectedCells[0], subjects[currentRange + selectedSubjectCell - 1]);
                 clearSubjectSelection();
             }
             break;
