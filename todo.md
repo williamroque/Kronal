@@ -1,20 +1,10 @@
 # TODO
-- [x] `/{row}.{cell} + Enter` selects given cell
-    - [x] Incrementally shows cell(s) being selected by highlighting row/column
-    - [ ] Shift to select multiple cells or `/{row_1}.{cell_1},{row_2}.{cell_2} + Enter`
-    - [x] Swap cells by selecting them, then inputing target with `'{row}.{cell} + Enter`
-        - [x] Add incremental highlighting
-    - [x] Clear cells via backspace
-- [x] Add all unique subjects to the subject bar with number of occurrences
-    - [ ] Create prompt for adding subjects
-    - [x] Allow adding of subject to schedule by selecting it, then either clicking on cell or inputing it in the format: `/{row}.{cell} + Enter`
-    - [x] Shortcut to toggle focus between subject bar and timetable (`s`/`t`), `Esc` to remove focus, shows hidden index numbers on focused area
-    - [x] `j` and `k` to navigate left and right between 10 subjects at a time, selected using `0-9`
-    - [ ] Delete subject by selecting it, then pressing backspace
-- [x] Have default schedule (and ability to set schedule as default) and reset button with weekly automatic resets
+- [ ] Shift to select multiple cells
+    - [ ] Implement swap for selection
+- [ ] Allow different actions to be triggered for different subject on press `Enter` based on configuration
+- [ ] Implement ability to set schedule as default and reset button
     - [ ] Add customizability
-- [ ] Add import/export functionality from menu bar
-    - [ ] Consider drag-and-drop to set other default schedule
+- [ ] Add import/export functionality
 - [ ] Add info prompt
 - [ ] Add settings prompt
 - [ ] Harden low-opacity region of icon

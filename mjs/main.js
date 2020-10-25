@@ -49,13 +49,17 @@ ipcMain.on('get-data', event => {
 
 ipcMain.on('update', (event, data, subjects, timestamp) => {
     fileio.writeData(JSON.stringify({
-        timetable: JSON.parse(fileio.readData(fileio.defaultPath)).timetable,
-        subjects: subjects
+        timetable: {
+            timetable: JSON.parse(fileio.readData(fileio.defaultPath)).timetable.timetable,
+            subjects: subjects
+        }
     }), fileio.defaultPath);
     event.returnValue = fileio.writeData(JSON.stringify({
         timestamp: timestamp,
-        timetable: data,
-        subjects: subjects
+        timetable: {
+            timetable: data,
+            subjects: subjects
+        }
     }), fileio.dataPath);
 });
 

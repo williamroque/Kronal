@@ -15,7 +15,8 @@ let selectedSubjectCell;
 
 let currentRange = 0;
 
-let { timestamp, timetable, subjects } = getData();
+let { timestamp, timetable: timetableWrapper } = getData();
+let { timetable, subjects } = timetableWrapper;
 
 let searchBuffer = [];
 let searchIndex = 0;
@@ -106,10 +107,18 @@ function clearSubjectSelection() {
     }
 }
 
-function clearCellSelection() {
+function clearCellSelection(clearsIndex = true) {
     selectedCells.forEach(cell => {
-        clearIndex(...cell);
+        if (clearsIndex) {
+            clearIndex(...cell);
+        }
         clearCellIndex(...cell);
+        document.querySelector(`#c-${cell[0]}-${cell[1]}`).classList.remove('no-border');
+        document.querySelector(`#c-${cell[0]}-${cell[1]}`).parentElement.classList.remove('no-border');
+        document.querySelector(`#c-${cell[0]}-${cell[1]}`).parentElement.classList.remove('n-border');
+        document.querySelector(`#c-${cell[0]}-${cell[1]}`).parentElement.classList.remove('w-border');
+        document.querySelector(`#c-${cell[0]}-${cell[1]}`).parentElement.classList.remove('e-border');
+        document.querySelector(`#c-${cell[0]}-${cell[1]}`).parentElement.classList.remove('s-border');
     });
 
     currentCell = [];
@@ -175,10 +184,14 @@ function clearIndex(row, cell) {
     }
 }
 
-function selectCellIndex(row, cell, type) {
+function selectCellIndex(row, cell, type, customStyle = []) {
     if (/^\d+$/.test(row + []) && row < timetable.length && /^\d+$/.test(cell + []) && cell < timetable[0].length) {
         document.querySelector(`#c-${row}-${cell}`).classList.add('active-cell');
         if (type === 'objective') document.querySelector(`#c-${row}-${cell}`).classList.add('objective');
+
+        customStyle.forEach(style => {
+            document.querySelector(`#c-${row}-${cell}`).parentElement.classList.add(style);
+        });
     }
 }
 
@@ -189,14 +202,16 @@ function clearCellIndex(row, cell) {
     }
 }
 
-function selectCell(row, cell) {
+function selectCell(row, cell, customStyle, selectsIndex = true) {
     currentCell = [row, cell];
     hoveredCell = [];
 
     selectedCells.push(currentCell);
 
-    selectIndex(...currentCell);
-    selectCellIndex(...currentCell, 'subjective');
+    if (selectsIndex) {
+        selectIndex(...currentCell);
+    }
+    selectCellIndex(...currentCell, 'subjective', customStyle);
 }
 
 function selectSubjectCell(cell) {
@@ -211,34 +226,59 @@ function selectSubjectCell(cell) {
 }
 
 function incrementallySelect(type) {
-    const [row, cell] = promptText.slice(1).split('.').map(x => /^\d+$/.test(x + []) ? x | 0 : undefined);
+    const [temporary, selection] = promptText.slice(1).split(',').filter(i => i).map(s => s.split('.').map(x => /^\d+$/.test(x + []) ? x | 0 : undefined));
 
-    if (temporaryIndices.length && (temporaryIndices[0] < timetable.length && temporaryIndices[0] !== currentCell[0] && temporaryIndices[0] !== row && temporaryIndices[0] !== hoveredCell[0] || row === undefined)) {
-        clearIndex(temporaryIndices[0], null);
+    temporaryIndices.forEach(index => {
+        if (index[0] !== currentCell[0] && index[0] !== hoveredCell[0] && (!temporary || !selection || index[0] !== temporary[0] && index[0] !== selection[0])) {
+            clearIndex(index[0], null);
+        }
+
+        if (index[1] !== currentCell[1] && index[1] !== hoveredCell[1] && (!temporary || !selection || index[1] !== temporary[1] && index[1] !== selection[1])) {
+            clearIndex(null, index[1]);
+        }
+    });
+
+    if (temporary) {
+        if (temporary[0] && temporary[0] < timetable.length) {
+            selectIndex(temporary[0], null);
+        }
+
+        if (temporary[1] && temporary[1] < timetable[0].length) {
+            selectIndex(null, temporary[1]);
+        }
     }
 
-    if (row < timetable.length) {
-        selectIndex(row, null);
+    if (temporaryIndices.length > 0 && !(temporaryIndices[0][0] === currentCell[0] && temporaryIndices[0][1] === currentCell[1]) && (!temporary || temporaryIndices[0][0] !== temporary[0] || temporaryIndices[0][1] !== temporary[1])) {
+        selectedCells.splice(selectedCells.findIndex(cell => cell[0] === temporaryIndices[0][0] && cell[1] === temporaryIndices[0][1]), 1);
+        clearCellIndex(...temporaryIndices[0]);
     }
 
-    if (temporaryIndices.length && (temporaryIndices[1] < timetable[0].length && temporaryIndices[1] !== currentCell[1] && temporaryIndices[1] !== cell && temporaryIndices[1] !== hoveredCell[1] || cell === undefined)) {
-        clearIndex(null, temporaryIndices[1]);
+    if (selection) {
+        if (selection[0] && selection[0] < timetable.length) {
+            selectIndex(selection[0], null);
+        }
+
+        if (selection[1] && selection[1] < timetable[0].length) {
+            selectIndex(null, selection[1]);
+        }
+
+        if (temporaryIndices.length > 1 && (temporaryIndices[1][0] !== selection[0] || temporaryIndices[1][1] !== selection[1])) {
+            selectedCells.splice(selectedCells.findIndex(cell => cell[0] === temporaryIndices[1][0] && cell[1] === temporaryIndices[1][1]), 1);
+            clearCellIndex(...temporaryIndices[1]);
+        }
+
+        if (selection[0] && selection[1] && selection[0] < timetable.length && selection[1] < timetable[0].length) {
+            selectCellIndex(...selection, 'objective');
+            selectedCells.push(selection);
+            temporaryIndices[1] = selection;
+        }
     }
 
-    if (cell < timetable[0].length) {
-        selectIndex(null, cell);
+    if (temporary && temporary[0] && temporary[1] && temporary[0] < timetable.length && temporary[1] < timetable[0].length) {
+        selectCellIndex(...temporary, type);
+        selectedCells.push(temporary);
+        temporaryIndices[0] = temporary;
     }
-
-    if (/^\d+$/.test(row + []) && row < timetable.length && /^\d+$/.test(cell + []) && cell < timetable[0].length) {
-        selectCellIndex(row, cell, type);
-        selectedCells.push([row, cell]);
-    }
-
-    if (/^\d+$/.test(temporaryIndices[0] + []) && /^\d+$/.test(temporaryIndices[1] + []) && (temporaryIndices[0] !== row || temporaryIndices[1] !== cell)) {
-        clearCellIndex(...temporaryIndices);
-    }
-
-    temporaryIndices = [row !== undefined ? row : temporaryIndices[0], cell !== undefined ? cell : temporaryIndices[1]];
 }
 
 function renderTable(timetable) {
@@ -293,11 +333,11 @@ function renderTable(timetable) {
                     const [rowIndex, cellIndex] = e.currentTarget.getAttribute('id').split('-').slice(1).map(x => x | 0);
 
                     if (hoveredCell.length) {
-                        if (hoveredCell[0] !== currentCell[0] && hoveredCell[0] !== temporaryIndices[0]) {
+                        if (!(selectedCells.length && selectedCells[0][0] === hoveredCell[0] || temporaryIndices.some(index => index[0] === hoveredCell[0]))) {
                             clearIndex(hoveredCell[0], null);
                         }
 
-                        if (hoveredCell[1] !== currentCell[1] && hoveredCell[1] !== temporaryIndices[1]) {
+                        if (!(selectedCells.length && selectedCells[0][1] === hoveredCell[1] || temporaryIndices.some(index => index[1] === hoveredCell[1]))) {
                             clearIndex(null, hoveredCell[1]);
                         }
                     }
@@ -308,15 +348,19 @@ function renderTable(timetable) {
                 cellElement.addEventListener('mouseleave', e => {
                     const [rowIndex, cellIndex] = e.currentTarget.getAttribute('id').split('-').slice(1).map(x => x | 0);
 
-                    if (rowIndex !== currentCell[0] && rowIndex !== temporaryIndices[0]) {
+                    if (!(selectedCells.length && selectedCells[0][0] === rowIndex || temporaryIndices.some(index => index[0] === rowIndex))) {
                         clearIndex(rowIndex, null);
                     }
 
-                    if (cellIndex !== currentCell[1] && cellIndex !== temporaryIndices[1]) {
+                    if (!(selectedCells.length && selectedCells[0][1] === cellIndex || temporaryIndices.some(index => index[1] === cellIndex))) {
                         clearIndex(null, cellIndex);
                     }
                 }, false);
                 cellElement.addEventListener('click', e => {
+                    if (!promptVisible) {
+                        e.stopPropagation();
+                    }
+
                     const indices = e.currentTarget.getAttribute('id').split('-').slice(1).map(x => x | 0);
 
                     if (promptCmd === '\'') {
@@ -329,21 +373,25 @@ function renderTable(timetable) {
                         cursorPos = promptText.length;
                         setCursor(cursorPos, prompt);
 
-                        if (indices[0] === currentCell[0] && indices[1] === currentCell[1]) {
-                            if (currentCell[0] !== temporaryIndices[0]) {
-                                clearIndex(temporaryIndices[0], null);
-                            }
+                        if (!(indices[0] === currentCell[0] && indices[1] === currentCell[1])) {
+                            temporaryIndices.forEach(index => {
+                                if (currentCell[0] !== index[0]) {
+                                    clearIndex(temporaryIndices[index][0], null);
+                                }
 
-                            if (currentCell[1] !== temporaryIndices[1]) {
-                                clearIndex(null, temporaryIndices[1]);
-                            }
+                                if (currentCell[1] !== index[1]) {
+                                    clearIndex(null, temporaryIndices[index][1]);
+                                }
 
-                            if (!(currentCell[0] === temporaryIndices[0] && currentCell[1] === temporaryIndices[1])) {
-                                clearCellIndex(...temporaryIndices);
-                            }
-                        } else {
+                                if (!(currentCell[0] === index[0] && currentCell[1] === index[1])) {
+                                    clearCellIndex(...index);
+                                }
+                            });
+
                             incrementallySelect('objective');
                         }
+                    } else if (currentCell.length && e.shiftKey) {
+                        createSelection(currentCell, indices);
                     } else {
                         clearCellSelection();
                         selectCell(...indices);
@@ -377,8 +425,22 @@ function renderTable(timetable) {
     tableElement.appendChild(indexRowElement);
 }
 
+function escape() {
+    if (promptVisible) {
+        prompt.style.display = 'none';
+        promptVisible = false;
+        promptCmd = '';
+        temporaryIndices.forEach(index => {
+            clearIndex(...index);
+            clearCellIndex(...index);
+        });
+    } else {
+        clearSelection();
+    }
+}
+
 document.addEventListener('click', () => {
-    prompt.style.display = 'none';
+    escape();
 }, false);
 
 function setCursor(col, elem) {
@@ -388,6 +450,37 @@ function setCursor(col, elem) {
     range.collapse(true);
     selection.removeAllRanges();
     selection.addRange(range);
+}
+
+function createSelection(beginCell, endCell) {
+    if (beginCell[0] < timetable.length && beginCell[1] < timetable[0].length &&
+        endCell[0] < timetable.length && endCell[1] < timetable[0].length) {
+        clearCellSelection(false);
+
+        const rowLimits = [beginCell[0], endCell[0]].sort();
+        const cellLimits = [beginCell[1], endCell[1]].sort();
+
+        for (let row = rowLimits[0]; row <= rowLimits[1]; row++) {
+            for (let cell = cellLimits[0]; cell <= cellLimits[1]; cell++) {
+                document.querySelector(`#c-${row}-${cell}`).classList.add('no-border');
+                let customStyle = ['no-border'];
+                if (row === rowLimits[0]) {
+                    customStyle.push('n-border');
+                }
+                if (row === rowLimits[1]) {
+                    customStyle.push('s-border');
+                }
+                if (cell === cellLimits[0]) {
+                    customStyle.push('w-border');
+                }
+                if (cell === cellLimits[1]) {
+                    customStyle.push('e-border');
+                }
+                selectCell(row, cell, customStyle, false);
+            }
+        }
+    }
+
 }
 
 const gotoSequence = [/^\/\d+$/, /^\/\d+\.$/, /^\/\d+\.\d+$/, /^\/\d+\.\d+\,$/, /^\/\d+\.\d+\,\d+$/, /^\/\d+\.\d+\,\d+\.$/, /^\/\d+\.\d+\,\d+\.\d+$/];
@@ -453,15 +546,29 @@ prompt.addEventListener('keydown', e => {
                     completed = true;
                 }
             } else if (gotoSequence[6].test(promptText)) {
+                let [beginCell, endCell] = promptText.slice(1).split(',');
+                beginCell = beginCell.split('.').map(x => x | 0);
+                endCell = endCell.split('.').map(x => x | 0);
 
+                createSelection(beginCell, endCell);
+                completed = true;
             }
         } else if (promptCmd === '\'') {
             if (swapSequence[2].test(promptText)) {
                 const [row, cell] = promptText.slice(1).split('.').map(x => x | 0);
                 if (row < timetable.length && cell < timetable[0].length) {
-                    swapCells(currentCell, [row, cell]);
-                    clearSelection();
-                    completed = true;
+                    if (selectedCells.length > 1) {
+                        for (let rowIndex = selectedCells[0][0]; rowIndex < timetable.length && rowIndex < selectedCells[selectedCells.length - 1][0]; rowIndex++) {
+                            for (let cellIndex = selectedCells[0][1]; cellIndex < timetable[0].length && cellIndex < selectedCells[selectedCells.length - 1][1]; cellIndex++) {
+                                swapCells([rowIndex, cellIndex], [row, cell]);
+                            }
+                        }
+                        completed = true;
+                    } else {
+                        swapCells(currentCell, [row, cell]);
+                        clearSelection();
+                        completed = true;
+                    }
                 }
             }
         } else if (promptCmd === '?') {
@@ -501,15 +608,26 @@ prompt.addEventListener('keydown', e => {
         }
     }
 
-    if (promptCmd === '/' || promptCmd === '\'') {
-        if (completed) temporaryIndices = [];
-        incrementallySelect(promptCmd === '/' ? 'subjective' : 'objective');
+    if (promptCmd !== '?' && !completed) {
+        let type = 'objective';
+        if (promptCmd !== '\'') {
+            if (promptText.indexOf(',') < 0) {
+                type = 'subjective';
+            } else {
+                type = 'dual';
+            }
+        }
+        incrementallySelect(type);
     }
 
     setCursor(cursorPos, prompt);
 }, false);
 
 function showPrompt(cmd) {
+    if (cmd !== '\'') {
+        clearCellSelection();
+    }
+
     promptVisible = true;
     promptText = cmd;
     promptCmd = cmd;
@@ -548,6 +666,10 @@ function renderSubjects(range) {
         subjectElement.setAttribute('id', `subject-cell-${i}`);
 
         subjectElement.addEventListener('click', e => {
+            if (!promptVisible) {
+                e.stopPropagation();
+            }
+
             const index = (e.currentTarget.getAttribute('id').split('-')[2] | 0) + 1;
             selectSubjectCell(index);
         }, false);
@@ -575,15 +697,7 @@ document.addEventListener('keydown', e => {
     }
     switch (e.key) {
         case 'Escape':
-            if (promptVisible) {
-                prompt.style.display = 'none';
-                promptVisible = false;
-                promptCmd = '';
-                clearIndex(...temporaryIndices);
-                clearCellIndex(...temporaryIndices);
-            } else {
-                clearSelection();
-            }
+            escape();
             break;
         case 'Clear':
         case 'Backspace':
@@ -595,7 +709,9 @@ document.addEventListener('keydown', e => {
                     update(timetable, subjects, timestamp);
                     clearSubjectSelection();
                 } else {
-                    setCell(currentCell, '');
+                    selectedCells.forEach(cell => {
+                        setCell(cell, '');
+                    });
                 }
             }
             break;
@@ -650,7 +766,9 @@ document.addEventListener('keydown', e => {
             break;
         case ' ':
             if (selectedCells.length && selectedSubjectCell !== undefined) {
-                setCell(selectedCells[0], subjects[currentRange + selectedSubjectCell - 1]);
+                selectedCells.forEach(cell => {
+                    setCell(cell, subjects[currentRange + selectedSubjectCell - 1]);
+                });
                 clearSubjectSelection();
             }
             break;
@@ -713,7 +831,6 @@ document.addEventListener('keydown', e => {
             break;
         case 'p':
             if (clipboard && currentCell.length) {
-                console.log(clipboard);
                 setCell(currentCell, clipboard);
             }
             break;

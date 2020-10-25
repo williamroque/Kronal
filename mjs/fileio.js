@@ -44,7 +44,7 @@ class FileIO {
             } else {
                 this.writeData(JSON.stringify({
                     timestamp: new Date().toDateString(),
-                    timetable: JSON.parse(this.readData(this.defaultPath))
+                    timetable: JSON.parse(this.readData(this.defaultPath)).timetable
                 }), this.dataPath);
             }
         } else {
@@ -59,7 +59,7 @@ class FileIO {
             if (weeks) {
                 this.writeData(JSON.stringify({
                     timestamp: new Date().toDateString(),
-                    timetable: JSON.parse(this.readData(this.defaultPath))
+                    timetable: JSON.parse(this.readData(this.defaultPath)).timetable
                 }), this.dataPath);
             }
         }
